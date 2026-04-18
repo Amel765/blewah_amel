@@ -1,0 +1,13 @@
+<svg width="180" height="45" viewBox="0 0 180 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#11998e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#38ef7d;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <circle cx="22" cy="22" r="16" fill="url(#greenGrad)" opacity="0.2"/>
+  <path d="M16 28L22 18L28 28H24L22 22L20 28H16Z" fill="url(#greenGrad)"/>
+  <path d="M18 30L22 24L26 30H22L20 27L18 30Z" fill="url(#greenGrad)"/>
+  <text x="45" y="27" font-family="Poppins, Arial, sans-serif" font-size="18" font-weight="bold" fill="url(#greenGrad)">SPK</text>
+  <text x="88" y="27" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="500" fill="#5A6A85">Bibit Blewah</text>
+</svg>
