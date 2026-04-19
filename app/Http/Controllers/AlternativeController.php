@@ -10,7 +10,7 @@ class AlternativeController extends Controller
 {
     public function index()
     {
-        $alternatives = Alternative::all();
+        $alternatives = Alternative::whereNull('submission_id')->get();
         return view('pages.alternative.index', compact('alternatives'));
     }
 
@@ -20,7 +20,9 @@ class AlternativeController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        Alternative::create($request->all());
+        $data = $request->all();
+        $data['submission_id'] = null;
+        Alternative::create($data);
 
         return redirect()->back()->with('success', 'Alternatif berhasil ditambahkan');
     }

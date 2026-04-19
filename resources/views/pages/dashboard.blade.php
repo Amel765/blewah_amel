@@ -83,6 +83,14 @@
                 <span class="badge bg-white bg-opacity-25 px-4 py-2 fs-6">CoCoSo</span>
                 <span class="badge bg-white bg-opacity-25 px-4 py-2 fs-6">Multi-Kriteria</span>
               </div>
+              <div class="mt-4">
+                <form action="{{ route('admin.dashboard.reset') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membersihkan dashboard? Semua data perhitungan, kriteria, dan alternatif akan dihapus secara permanen.')">
+                  @csrf
+                  <button type="submit" class="btn btn-danger shadow-sm px-4 py-2 rounded-pill">
+                    <i class="ti ti-trash"></i> Bersihkan Data Perhitungan
+                  </button>
+                </form>
+              </div>
             </div>
             <div class="col-lg-4 text-end d-none d-lg-block">
               <i class="ti ti-plant-2" style="font-size: 150px; opacity: 0.15;"></i>
@@ -130,7 +138,7 @@
   
   <div class="row mt-4 g-4">
     <div class="col-md-4">
-      <a href="{{ route('criteria.index') }}" class="text-decoration-none">
+      <a href="{{ route('admin.criteria.index') }}" class="text-decoration-none">
         <div class="feature-box" style="cursor: pointer;">
           <div class="d-flex align-items-center mb-3">
             <div class="bg-success rounded-circle p-2 me-3">
@@ -143,7 +151,7 @@
       </a>
     </div>
     <div class="col-md-4">
-      <a href="{{ route('alternative.index') }}" class="text-decoration-none">
+      <a href="{{ route('admin.alternative.index') }}" class="text-decoration-none">
         <div class="feature-box" style="cursor: pointer;">
           <div class="d-flex align-items-center mb-3">
             <div class="bg-info rounded-circle p-2 me-3">
@@ -156,7 +164,7 @@
       </a>
     </div>
     <div class="col-md-4">
-      <a href="{{ route('ranking') }}" class="text-decoration-none">
+      <a href="{{ route('admin.ranking') }}" class="text-decoration-none">
         <div class="feature-box" style="cursor: pointer;">
           <div class="d-flex align-items-center mb-3">
             <div class="bg-warning rounded-circle p-2 me-3">

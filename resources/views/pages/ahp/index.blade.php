@@ -9,7 +9,7 @@
       <div class="card-body p-4">
         <h5 class="page-title mb-4">Perhitungan AHP (Pembobotan Kriteria)</h5>
         
-        <form action="{{ route('ahp.calculate') }}" method="POST">
+        <form action="{{ route('admin.ahp.calculate') }}" method="POST">
           @csrf
           <div class="alert alert-info border-0 shadow-none mb-4">
             <h6 class="alert-heading fw-bold">Input Perbandingan Berpasangan (Pairwise Comparison)</h6>
@@ -67,7 +67,7 @@
                     <td colspan="3" class="text-center py-4 text-muted">
                       <i class="ti ti-info-circle d-block mb-2" style="font-size: 2rem;"></i>
                       Belum ada kriteria atau kriteria kurang dari 2.<br>
-                      <a href="{{ route('criteria.index') }}" class="btn btn-sm btn-outline-primary mt-2">Tambah Kriteria</a>
+                      <a href="{{ route('admin.criteria.index') }}" class="btn btn-sm btn-outline-primary mt-2">Tambah Kriteria</a>
                     </td>
                   </tr>
                 @else

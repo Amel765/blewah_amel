@@ -4,29 +4,36 @@ namespace App\Services;
 
 use App\Models\Comparison;
 use App\Models\Criteria;
+use App\Models\SubmissionComparison;
 
 class AHPService
 {
-    public function calculateWeights()
+    public function calculateWeights($submissionId = null)
     {
-        $criteria = Criteria::orderBy('id')->get();
+        $criteria = Criteria::where('submission_id', $submissionId)->orderBy('id')->get();
         $n = $criteria->count();
         if ($n === 0) {
             return [];
         }
 
-        $matrix = $this->getPairwiseMatrix($criteria);
+        if ($submissionId) {
+            $matrix = $this->getPairwiseMatrixFromSubmission($submissionId, $criteria);
+        } else {
+            $matrix = $this->getPairwiseMatrix($criteria);
+        }
+
         $normalizedMatrix = $this->normalizeMatrix($matrix, $n);
-        $weights = $this->calculateEigenvector($normalizedMatrix, $n);
+        $weights = $this->calculateEigenvector($matrix, $n);
 
         $cr = $this->calculateConsistencyRatio($matrix, $weights, $n);
 
-        // Save weights to criteria table
-        $criteriaArray = $criteria->toArray();
+        // Define weightedCriteria but DON'T update table if it's a submission
         $weightedCriteria = [];
         foreach ($criteria as $index => $crit) {
             $weight = $weights[$index] ?? 0;
-            $crit->update(['weight' => $weight]);
+            if (! $submissionId) {
+                $crit->update(['weight' => $weight]);
+            }
             $weightedCriteria[$crit->id] = [
                 'criteria_id' => $crit->id,
                 'name' => $crit->name,
@@ -34,19 +41,64 @@ class AHPService
             ];
         }
 
+        $criteriaArray = [];
+        foreach ($criteria as $index => $crit) {
+            $criteriaArray[$index] = $crit;
+        }
+
         return [
-            'weightsIndexed' => $weights, // For view display (indexed by position)
-            'weights' => $weightedCriteria, // For COCOSO (indexed by criteria_id)
+            'weightsIndexed' => $weights,
+            'weights' => $weightedCriteria,
             'cr' => $cr,
             'matrix' => $matrix,
             'normalizedMatrix' => $normalizedMatrix,
-            'criteria' => $criteria,
+            'criteria' => $criteriaArray,
         ];
     }
 
-    public function getWeightsFromCriteria()
+    private function getPairwiseMatrixFromSubmission($submissionId, $criteria)
     {
-        $criteria = Criteria::orderBy('id')->get();
+        $matrix = [];
+        $criteriaIds = $criteria->pluck('id')->toArray();
+        $n = count($criteriaIds);
+
+        for ($i = 0; $i < $n; $i++) {
+            $id1 = $criteriaIds[$i];
+            for ($j = 0; $j < $n; $j++) {
+                $id2 = $criteriaIds[$j];
+
+                if ($id1 == $id2) {
+                    $matrix[$j][$i] = 1.0;
+                } else {
+                    $comparison = SubmissionComparison::where('submission_id', $submissionId)
+                        ->where('criteria_id_1', $id1)
+                        ->where('criteria_id_2', $id2)
+                        ->first();
+
+                    if ($comparison) {
+                        $matrix[$j][$i] = (float) $comparison->value;
+                    } else {
+                        $reverse = SubmissionComparison::where('submission_id', $submissionId)
+                            ->where('criteria_id_1', $id2)
+                            ->where('criteria_id_2', $id1)
+                            ->first();
+
+                        if ($reverse && $reverse->value != 0) {
+                            $matrix[$j][$i] = 1.0 / (float) $reverse->value;
+                        } else {
+                            $matrix[$j][$i] = 1.0;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $matrix;
+    }
+
+    public function getWeightsFromCriteria($submissionId = null)
+    {
+        $criteria = Criteria::where('submission_id', $submissionId)->orderBy('id')->get();
         $weights = [];
 
         foreach ($criteria as $crit) {
@@ -73,26 +125,13 @@ class AHPService
                 $id2 = $criteriaIds[$j];
 
                 if ($id1 == $id2) {
-                    $matrix[$i][$j] = 1.0;
+                    $matrix[$j][$i] = 1.0;
                 } else {
                     $comparison = Comparison::where('criteria_id_1', $id1)
                         ->where('criteria_id_2', $id2)
                         ->first();
 
-                    if ($comparison) {
-                        $matrix[$i][$j] = (float) $comparison->value;
-                    } else {
-                        // Check for reverse comparison
-                        $reverse = Comparison::where('criteria_id_1', $id2)
-                            ->where('criteria_id_2', $id1)
-                            ->first();
-
-                        if ($reverse && $reverse->value != 0) {
-                            $matrix[$i][$j] = 1.0 / (float) $reverse->value;
-                        } else {
-                            $matrix[$i][$j] = 1.0; // Default if not found
-                        }
-                    }
+                    $matrix[$j][$i] = $comparison ? (float) $comparison->value : 1.0;
                 }
             }
         }
@@ -119,11 +158,22 @@ class AHPService
         return $normalizedMatrix;
     }
 
-    private function calculateEigenvector($normalizedMatrix, $n)
+    private function calculateEigenvector($matrix, $n)
     {
         $weights = [];
         for ($i = 0; $i < $n; $i++) {
-            $weights[$i] = array_sum($normalizedMatrix[$i]) / $n;
+            $product = 1.0;
+            for ($j = 0; $j < $n; $j++) {
+                $product *= $matrix[$i][$j];
+            }
+            $weights[$i] = pow($product, 1 / $n);
+        }
+
+        $sum = array_sum($weights);
+        if ($sum > 0) {
+            foreach ($weights as $i => $w) {
+                $weights[$i] = $w / $sum;
+            }
         }
 
         return $weights;
@@ -156,10 +206,11 @@ class AHPService
         // CI
         $ci = ($lambdaMax - $n) / ($n - 1);
 
-        // RI (Random Index) values
-        $ri = [0, 0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45];
-        $riValue = $ri[$n] ?? 1.45;
+        // RI (Random Index) values - Saaty standard for n ≥ 3
+        $ri = [0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45]; // index 0 unused, 1 for n=3, 2 for n=4, etc.
+        $riIndex = $n - 2; // Adjust index: n=3 -> index 1, n=4 -> index 2, etc.
+        $riValue = ($riIndex >= 1 && $riIndex < count($ri)) ? $ri[$riIndex] : 1.45;
 
-        return $riValue != 0 ? $ci / $riValue : 0;
+        return $riValue != 0 ? round($ci / $riValue, 4) : 0;
     }
 }

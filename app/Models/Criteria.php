@@ -8,7 +8,12 @@ class Criteria extends Model
 {
     protected $table = 'criteria';
 
-    protected $fillable = ['name', 'type', 'weight'];
+    protected $fillable = ['name', 'type', 'weight', 'submission_id'];
+
+    public function submission()
+    {
+        return $this->belongsTo(Submission::class);
+    }
 
     public function scores()
     {

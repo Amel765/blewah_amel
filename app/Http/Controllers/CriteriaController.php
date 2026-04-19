@@ -10,7 +10,7 @@ class CriteriaController extends Controller
 {
     public function index()
     {
-        $criteria = Criteria::all();
+        $criteria = Criteria::whereNull('submission_id')->get();
         return view('pages.criteria.index', compact('criteria'));
     }
 
@@ -21,7 +21,9 @@ class CriteriaController extends Controller
             'type' => 'required|in:benefit,cost',
         ]);
 
-        Criteria::create($request->all());
+        $data = $request->all();
+        $data['submission_id'] = null;
+        Criteria::create($data);
 
         return redirect()->back()->with('success', 'Kriteria berhasil ditambahkan');
     }

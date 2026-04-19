@@ -16,7 +16,7 @@
         </div>
         @endif
         
-        <form action="{{ route('cocoso.calculate') }}" method="POST">
+        <form action="{{ route('admin.cocoso.calculate') }}" method="POST">
           @csrf
           <div class="alert alert-success border-0 shadow-none mb-4">
             <h6 class="alert-heading fw-bold">Input Nilai Alternatif per Kriteria</h6>
@@ -42,7 +42,7 @@
                     <td colspan="{{ count($criteria) + 1 }}" class="text-center py-4 text-muted">
                       <i class="ti ti-info-circle d-block mb-2" style="font-size: 2rem;"></i>
                       Belum ada alternatif.<br>
-                      <a href="{{ route('alternative.index') }}" class="btn btn-sm btn-outline-primary mt-2">Tambah Alternatif</a>
+                      <a href="{{ route('admin.alternative.index') }}" class="btn btn-sm btn-outline-primary mt-2">Tambah Alternatif</a>
                     </td>
                   </tr>
                 @else

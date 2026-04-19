@@ -41,7 +41,7 @@
               <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editCriteriaModal{{ $item->id }}">
                 <i class="ti ti-edit"></i>
               </button>
-              <form action="{{ route('criteria.destroy', $item->id) }}" method="POST" class="d-inline">
+              <form action="{{ route('admin.criteria.destroy', $item->id) }}" method="POST" class="d-inline">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin hapus kriteria ini?')">
@@ -61,7 +61,7 @@
 <!-- Modal Add -->
 <div class="modal fade" id="addCriteriaModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form action="{{ route('criteria.store') }}" method="POST">
+    <form action="{{ route('admin.criteria.store') }}" method="POST">
       @csrf
       <div class="modal-content">
         <div class="modal-header">
@@ -94,7 +94,7 @@
 @foreach($criteria as $item)
 <div class="modal fade" id="editCriteriaModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form action="{{ route('criteria.update', $item->id) }}" method="POST">
+    <form action="{{ route('admin.criteria.update', $item->id) }}" method="POST">
       @csrf
       @method('PUT')
       <div class="modal-content">

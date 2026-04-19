@@ -58,7 +58,7 @@
         </div>
         @else
         <div class="alert alert-warning">
-          Belum ada data hasil perhitungan. Silakan lakukan <a href="{{ route('cocoso.index') }}">Perhitungan CoCoSo</a> terlebih dahulu.
+          Belum ada data hasil perhitungan. Silakan lakukan <a href="{{ route('admin.cocoso.index') }}">Perhitungan CoCoSo</a> terlebih dahulu.
         </div>
         @endif
       </div>

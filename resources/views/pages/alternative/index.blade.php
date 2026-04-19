@@ -35,7 +35,7 @@
               <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editAltModal{{ $item->id }}">
                 <i class="ti ti-edit"></i>
               </button>
-              <form action="{{ route('alternative.destroy', $item->id) }}" method="POST" class="d-inline">
+              <form action="{{ route('admin.alternative.destroy', $item->id) }}" method="POST" class="d-inline">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin hapus alternatif ini?')">
@@ -55,7 +55,7 @@
 <!-- Modal Add -->
 <div class="modal fade" id="addAltModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form action="{{ route('alternative.store') }}" method="POST">
+    <form action="{{ route('admin.alternative.store') }}" method="POST">
       @csrf
       <div class="modal-content">
         <div class="modal-header">
@@ -81,7 +81,7 @@
 @foreach($alternatives as $item)
 <div class="modal fade" id="editAltModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
-    <form action="{{ route('alternative.update', $item->id) }}" method="POST">
+    <form action="{{ route('admin.alternative.update', $item->id) }}" method="POST">
       @csrf
       @method('PUT')
       <div class="modal-content">

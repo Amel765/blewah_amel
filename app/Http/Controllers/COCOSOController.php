@@ -23,21 +23,25 @@ class COCOSOController extends Controller
 
     public function index()
     {
-        $criteria = Criteria::orderBy('id')->get();
-        $alternatives = Alternative::all();
+        $criteria = Criteria::whereNull('submission_id')->orderBy('id')->get();
+        $alternatives = Alternative::whereNull('submission_id')->get();
         $results = null;
         $error = null;
         $savedScores = [];
 
-        // Load saved scores for display
-        $scores = Score::all();
+        // Load saved scores for display (only global scores)
+        $scores = Score::whereHas('alternative', function($q) {
+            $q->whereNull('submission_id');
+        })->get();
         foreach ($scores as $score) {
             $savedScores[$score->alternative_id][$score->criteria_id] = $score->value;
         }
 
-        if (Score::exists()) {
+        if (Score::whereHas('alternative', function($q) {
+            $q->whereNull('submission_id');
+        })->exists()) {
             // Get weights directly from criteria table (where AHP saved them)
-            $weights = $this->ahpService->getWeightsFromCriteria();
+            $weights = $this->ahpService->getWeightsFromCriteria(null);
 
             // Check if any weights are null or zero (not calculated yet)
             $hasWeights = false;
@@ -60,7 +64,7 @@ class COCOSOController extends Controller
                     $error = 'Consistency Ratio (CR) = '.number_format($ahpResults['cr'], 4).' (>= 0.1). Perbandingan AHP tidak konsisten. Silakan perbaiki perbandingan.';
                 } else {
                     // Get fresh weights after saving
-                    $weights = $this->ahpService->getWeightsFromCriteria();
+                    $weights = $this->ahpService->getWeightsFromCriteria(null);
                     $results = $this->cocosoService->calculateRanking($weights, $criteria);
                 }
             } else {
@@ -92,7 +96,7 @@ class COCOSOController extends Controller
             }
         }
 
-        return redirect()->route('cocoso.index')->with('success', 'Perhitungan CoCoSo berhasil diperbarui');
+        return redirect()->route('admin.cocoso.index')->with('success', 'Perhitungan CoCoSo berhasil diperbarui');
     }
 
     public function ranking()
@@ -100,18 +104,18 @@ class COCOSOController extends Controller
         $ahpResults = $this->ahpService->calculateWeights();
 
         if (empty($ahpResults)) {
-            return redirect()->route('cocoso.index')->with('error', 'Belum ada data kriteria. Silakan input kriteria terlebih dahulu.');
+            return redirect()->route('admin.cocoso.index')->with('error', 'Belum ada data kriteria. Silakan input kriteria terlebih dahulu.');
         }
 
         if (! isset($ahpResults['weights'])) {
-            return redirect()->route('cocoso.index')->with('error', 'Perbandingan AHP belum lengkap. Silakan lakukan perbandingan berpasangan di halaman AHP.');
+            return redirect()->route('admin.cocoso.index')->with('error', 'Perbandingan AHP belum lengkap. Silakan lakukan perbandingan berpasangan di halaman AHP.');
         }
 
         if ($ahpResults['cr'] >= 0.1) {
-            return redirect()->route('cocoso.index')->with('error', 'Consistency Ratio (CR) = '.number_format($ahpResults['cr'], 4).' (>= 0.1). Perbandingan tidak konsisten. Silakan perbaiki data perbandingan AHP.');
+            return redirect()->route('admin.cocoso.index')->with('error', 'Consistency Ratio (CR) = '.number_format($ahpResults['cr'], 4).' (>= 0.1). Perbandingan tidak konsisten. Silakan perbaiki data perbandingan AHP.');
         }
 
-        $criteria = Criteria::orderBy('id')->get();
+        $criteria = Criteria::whereNull('submission_id')->orderBy('id')->get();
         $results = $this->cocosoService->calculateRanking($ahpResults['weights'], $criteria);
 
         return view('pages.ranking.index', compact('results'));

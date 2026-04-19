@@ -8,19 +8,24 @@ use App\Models\Score;
 
 class COCOSOService
 {
-    public function calculateRanking($weights, $criteria = null)
+    public function calculateRanking($weights, $criteria = null, $submissionId = null)
     {
         if ($criteria === null) {
-            $criteria = Criteria::orderBy('id')->get();
+            $criteria = Criteria::where('submission_id', $submissionId)->orderBy('id')->get();
         }
 
-        $alternatives = Alternative::all();
+        $alternatives = Alternative::where('submission_id', $submissionId)->get();
 
         if ($criteria->isEmpty() || $alternatives->isEmpty()) {
             return [];
         }
 
-        $decisionMatrix = $this->getDecisionMatrix($criteria, $alternatives);
+        if ($submissionId) {
+            $decisionMatrix = $this->getDecisionMatrixFromSubmission($submissionId, $criteria, $alternatives);
+        } else {
+            $decisionMatrix = $this->getDecisionMatrix($criteria, $alternatives);
+        }
+        
         $normalizedMatrix = $this->normalizeMatrix($decisionMatrix, $criteria);
 
         // Si (Weighted Sum) and Pi (Weighted Product)
@@ -99,6 +104,22 @@ class COCOSOService
         usort($results, fn ($a, $b) => $b['qi'] <=> $a['qi']);
 
         return $results;
+    }
+
+    private function getDecisionMatrixFromSubmission($submissionId, $criteria, $alternatives)
+    {
+        $matrix = [];
+        foreach ($alternatives as $i => $alt) {
+            foreach ($criteria as $j => $crit) {
+                $score = \App\Models\SubmissionScore::where('submission_id', $submissionId)
+                    ->where('alternative_id', $alt->id)
+                    ->where('criteria_id', $crit->id)
+                    ->first();
+                $matrix[$i][$j] = $score ? (float) $score->value : 0;
+            }
+        }
+
+        return $matrix;
     }
 
     private function getDecisionMatrix($criteria, $alternatives)
