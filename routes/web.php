@@ -1,18 +1,19 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\CriteriaController;
-use App\Http\Controllers\AlternativeController;
-use App\Http\Controllers\AHPController;
-use App\Http\Controllers\COCOSOController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\UserSubmissionController;
 use App\Http\Controllers\AdminSubmissionController;
+use App\Http\Controllers\AHPController;
+use App\Http\Controllers\AlternativeController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\COCOSOController;
+use App\Http\Controllers\CriteriaController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UserSubmissionController;
 
 Route::get('/', function () {
     if (auth()->check()) {
         return auth()->user()->isAdmin() ? redirect()->route('admin.dashboard') : redirect()->route('user.dashboard');
     }
+
     return redirect()->route('login');
 });
 
@@ -71,16 +72,18 @@ Route::middleware(['auth', 'role:user'])->prefix('user')->name('user.')->group(f
     Route::get('/dashboard', [UserSubmissionController::class, 'index'])->name('dashboard');
     Route::get('/submission/create', [UserSubmissionController::class, 'create'])->name('submission.create');
     Route::post('/submission', [UserSubmissionController::class, 'store'])->name('submission.store');
-    
+
     // New dynamic steps
     Route::get('/submission/{id}/manage-data', [UserSubmissionController::class, 'manageData'])->name('submission.manage_data');
     Route::post('/submission/{id}/criteria', [UserSubmissionController::class, 'storeCriteria'])->name('submission.store_criteria');
     Route::delete('/submission/criteria/{id}', [UserSubmissionController::class, 'destroyCriteria'])->name('submission.destroy_criteria');
     Route::post('/submission/{id}/alternative', [UserSubmissionController::class, 'storeAlternative'])->name('submission.store_alternative');
     Route::delete('/submission/alternative/{id}', [UserSubmissionController::class, 'destroyAlternative'])->name('submission.destroy_alternative');
-    
+
     Route::get('/submission/{id}/input-values', [UserSubmissionController::class, 'inputValues'])->name('submission.input_values');
     Route::post('/submission/{id}/submit', [UserSubmissionController::class, 'submitValues'])->name('submission.submit_values');
-    
+
     Route::get('/submission/{id}', [UserSubmissionController::class, 'show'])->name('submission.show');
+    Route::delete('/submission/{id}', [UserSubmissionController::class, 'destroy'])->name('submission.destroy');
+
 });

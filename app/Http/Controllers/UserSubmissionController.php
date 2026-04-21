@@ -171,4 +171,15 @@ class UserSubmissionController extends Controller
         $submission = Submission::where('user_id', auth()->id())->findOrFail($id);
         return view('pages.user.submission_show', compact('submission'));
     }
+    public function destroy($id)
+    {
+        // Pastikan submission milik user yang sedang login
+        $submission = Submission::where('user_id', auth()->id())->findOrFail($id);
+
+        // Hapus submission (ini akan otomatis menghapus kriteria/alternatif jika Anda setting cascade di database)
+        $submission->delete();
+
+        return redirect()->route('user.dashboard')->with('success', 'Pengajuan berhasil dihapus');
+    }
+
 }

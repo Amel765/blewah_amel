@@ -69,6 +69,13 @@
                                         @else
                                             <a href="{{ route('user.submission.show', $submission->id) }}" class="btn btn-sm btn-light">Detail</a>
                                         @endif
+                                        <form action="{{ route('user.submission.destroy', $submission->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengajuan ini? Semua data terkait akan hilang.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             @empty

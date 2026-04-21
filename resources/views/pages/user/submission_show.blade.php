@@ -9,12 +9,19 @@
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <h4 class="fw-bold mb-0">Pengajuan: {{ $submission->title }} (#{{ $submission->id }})</h4>
-                    <div>
+                    <div class="d-flex align-items-center gap-2">
                         @if($submission->status == 'pending')
                             <span class="badge bg-warning px-3 py-2">Menunggu Admin</span>
                         @else
                             <span class="badge bg-success px-3 py-2">Selesai Diproses</span>
                         @endif
+                        <form action="{{ route('user.submission.destroy', $submission->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengajuan ini? Semua data terkait akan hilang.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="ti ti-trash me-1"></i> Hapus
+                            </button>
+                        </form>
                     </div>
                 </div>
                 <hr>
