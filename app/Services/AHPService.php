@@ -207,7 +207,7 @@ class AHPService
         $ci = ($lambdaMax - $n) / ($n - 1);
 
         // RI (Random Index) values - Saaty standard for n ≥ 3
-        $ri = [0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45]; // index 0 unused, 1 for n=3, 2 for n=4, etc.
+        $ri = [0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45]; // index 0 unused, 1 for n=3, 2 for n=4, etc.
         $riIndex = $n - 2; // Adjust index: n=3 -> index 1, n=4 -> index 2, etc.
         $riValue = ($riIndex >= 1 && $riIndex < count($ri)) ? $ri[$riIndex] : 1.45;
 
