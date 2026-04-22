@@ -132,13 +132,34 @@ class AdminSubmissionController extends Controller
                 ];
             }
 
-            $ri = [0, 0, 0.58, 0.90, 1.12, 1.24, 1.32, 1.41, 1.45];
+            // Determine number of criteria (n)
             $n = count($ahpResults['criteria']);
-            $riValue = isset($ri[$n]) ? $ri[$n] : 1.45;
-            $ci = ($ahpResults['cr'] > 0 && $riValue > 0) ? $ahpResults['cr'] * $riValue : 0;
 
+            // Random Index (RI) values - Saaty standard
+            $ri = [
+                1 => 0.00,
+                2 => 0.00,
+                3 => 0.58,
+                4 => 0.90,
+                5 => 1.12,
+                6 => 1.24,
+                7 => 1.32,
+                8 => 1.41,
+                9 => 1.45,
+                10 => 1.49,
+            ];
+            $riValue = $ri[$n] ?? 1.49;
+
+            // CI was already calculated in AHPService; derive it from CR if needed
+            $cr = $ahpResults['cr'] ?? 0;
+            $ci = $cr * $riValue; // CR = CI / RI  => CI = CR * RI
+
+            // 5. Menentukan teks otomatis
             $bestAlt = $suggestions[0]['alternative']->name ?? 'Unknown';
-            $autoText = 'Hasil perhitungan otomatis dengan menggunakan metode AHP untuk pembobotan kriteria dan CoCoSo untuk perankingan alternatif. Consistency Ratio (CR) = '.number_format($ahpResults['cr'], 4).' (konsisten). Berdasarkan hasil perhitungan, alternatif dengan nilai tertinggi adalah '.$bestAlt.'.';
+
+            $autoText = 'Hasil perhitungan otomatis menggunakan metode AHP untuk pembobotan kriteria dan CoCoSo untuk perankingan. ';
+            $autoText .= 'Consistency Ratio (CR) = '.number_format($cr, 4).' ('.($cr <= 0.1 ? 'Konsisten' : 'Tidak Konsisten').'). ';
+            $autoText .= 'Berdasarkan hasil perhitungan, alternatif dengan nilai tertinggi adalah '.$bestAlt.'.';
 
             $resultData = [
                 'manual' => false,

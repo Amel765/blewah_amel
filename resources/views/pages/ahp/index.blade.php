@@ -79,7 +79,7 @@
                       <td>
                         <input 
                           type="number" 
-                          step="0.1" 
+                          step="0.0000000001" 
                           min="0.1" 
                           max="9" 
                           name="comparison[{{ $c1->id }}][{{ $c2->id }}]" 
@@ -122,9 +122,9 @@
               <tr>
                 <td class="fw-bold bg-light">{{ $c->name }}</td>
                 @foreach($results['criteria'] as $j => $c2)
-                <td>{{ number_format($results['matrix'][$i][$j], 3) }}</td>
+                <td>{{ rtrim(rtrim(number_format($results['matrix'][$i][$j], 10), '0'), '.') }}</td>
                 @endforeach
-                <td class="fw-bold bg-light-primary">{{ number_format($results['weightsIndexed'][$i], 4) }}</td>
+                <td class="fw-bold bg-light-primary">{{ rtrim(rtrim(number_format($results['weightsIndexed'][$i], 10), '0'), '.') }}</td>
               </tr>
               @endforeach
             </tbody>
@@ -134,7 +134,7 @@
         <div class="row mt-4">
           <div class="col-md-6">
             <div class="alert {{ $results['cr'] < 0.1 ? 'alert-success' : 'alert-danger' }} border-0 shadow-none">
-              <strong>Consistency Ratio (CR):</strong> {{ number_format($results['cr'], 4) }}
+              <strong>Consistency Ratio (CR):</strong> {{ rtrim(rtrim(number_format($results['cr'], 10), '0'), '.') }}
               <br>
               <small>{{ $results['cr'] < 0.1 ? '✓ CR < 0.1 - Matriks Konsisten (Dapat Digunakan)' : '✗ CR >= 0.1 - Matriks Tidak Konsisten (Harus Diperbaiki)' }}</small>
             </div>

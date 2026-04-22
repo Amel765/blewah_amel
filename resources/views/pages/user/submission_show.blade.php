@@ -15,6 +15,13 @@
                         @else
                             <span class="badge bg-success px-3 py-2">Selesai Diproses</span>
                         @endif
+                        @if($submission->status == 'processed')
+                            <a href="{{ route('user.submission.resend', $submission->id) }}" 
+                               class="btn btn-outline-primary btn-sm"
+                               onclick="return confirm('Kirim ulang pengajuan ini? Hasil perhitungan akan dihapus dan Anda bisa mengedit nilai sebelum dikirim kembali ke admin.')">
+                                <i class="ti ti-refresh me-1"></i> Kirim Ulang
+                            </a>
+                        @endif
                         <form action="{{ route('user.submission.destroy', $submission->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengajuan ini? Semua data terkait akan hilang.')">
                             @csrf
                             @method('DELETE')

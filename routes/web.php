@@ -86,6 +86,7 @@ Route::middleware(['auth', 'role:user'])->prefix('user')->name('user.')->group(f
     Route::post('/submission/{id}/submit', [UserSubmissionController::class, 'submitValues'])->name('submission.submit_values');
 
     Route::get('/submission/{id}', [UserSubmissionController::class, 'show'])->name('submission.show');
+    Route::get('/submission/{id}/resend', [UserSubmissionController::class, 'resend'])->name('submission.resend');
     Route::delete('/submission/{id}', [UserSubmissionController::class, 'destroy'])->name('submission.destroy');
 
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');

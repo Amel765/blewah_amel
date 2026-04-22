@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
-use App\Models\Submission;
-use App\Models\Criteria;
 use App\Models\Alternative;
+use App\Models\Criteria;
+use App\Models\Submission;
 use App\Models\SubmissionComparison;
 use App\Models\SubmissionScore;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class UserSubmissionController extends Controller
@@ -16,6 +15,7 @@ class UserSubmissionController extends Controller
     public function index()
     {
         $submissions = Submission::where('user_id', auth()->id())->latest()->get();
+
         return view('pages.user.dashboard', compact('submissions'));
     }
 
@@ -53,7 +53,7 @@ class UserSubmissionController extends Controller
     public function storeCriteria(Request $request, $id)
     {
         $submission = Submission::where('user_id', auth()->id())->findOrFail($id);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:benefit,cost',
@@ -66,7 +66,7 @@ class UserSubmissionController extends Controller
 
     public function destroyCriteria($id)
     {
-        $criteria = Criteria::whereHas('submission', function($q) {
+        $criteria = Criteria::whereHas('submission', function ($q) {
             $q->where('user_id', auth()->id());
         })->findOrFail($id);
 
@@ -78,7 +78,7 @@ class UserSubmissionController extends Controller
     public function storeAlternative(Request $request, $id)
     {
         $submission = Submission::where('user_id', auth()->id())->findOrFail($id);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -90,7 +90,7 @@ class UserSubmissionController extends Controller
 
     public function destroyAlternative($id)
     {
-        $alternative = Alternative::whereHas('submission', function($q) {
+        $alternative = Alternative::whereHas('submission', function ($q) {
             $q->where('user_id', auth()->id());
         })->findOrFail($id);
 
@@ -102,7 +102,7 @@ class UserSubmissionController extends Controller
     public function inputValues($id)
     {
         $submission = Submission::where('user_id', auth()->id())->with(['criteria', 'alternatives'])->findOrFail($id);
-        
+
         if ($submission->criteria->count() < 2 || $submission->alternatives->count() < 2) {
             return back()->with('error', 'Silakan tambahkan minimal 2 kriteria dan 2 alternatif terlebih dahulu.');
         }
@@ -110,7 +110,7 @@ class UserSubmissionController extends Controller
         return view('pages.user.submission_form', [
             'submission' => $submission,
             'criteria' => $submission->criteria,
-            'alternatives' => $submission->alternatives
+            'alternatives' => $submission->alternatives,
         ]);
     }
 
@@ -159,18 +159,22 @@ class UserSubmissionController extends Controller
             $submission->update(['status' => 'pending']);
 
             DB::commit();
+
             return redirect()->route('user.dashboard')->with('success', 'Pengajuan berhasil dikirim. Menunggu proses admin.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Terjadi kesalahan saat menyimpan data: ' . $e->getMessage());
+
+            return back()->with('error', 'Terjadi kesalahan saat menyimpan data: '.$e->getMessage());
         }
     }
 
     public function show($id)
     {
         $submission = Submission::where('user_id', auth()->id())->findOrFail($id);
+
         return view('pages.user.submission_show', compact('submission'));
     }
+
     public function destroy($id)
     {
         // Pastikan submission milik user yang sedang login
@@ -182,4 +186,22 @@ class UserSubmissionController extends Controller
         return redirect()->route('user.dashboard')->with('success', 'Pengajuan berhasil dihapus');
     }
 
+    public function resend($id)
+    {
+        $submission = Submission::where('user_id', auth()->id())->findOrFail($id);
+
+        // Only allow resend if submission is already processed/completed
+        if ($submission->status !== 'processed') {
+            return back()->with('error', 'Hanya pengajuan yang sudah selesai diproses yang dapat dikirim ulang.');
+        }
+
+        // Clear previous results and reset to draft for editing
+        $submission->update([
+            'status' => 'draft',
+            'result_data' => null,
+        ]);
+
+        return redirect()->route('user.submission.manage_data', $submission->id)
+            ->with('success', 'Pengajuan dikirim ulang. Silakan edit data sebelum dikirim kembali ke admin.');
+    }
 }

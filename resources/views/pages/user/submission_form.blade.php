@@ -38,7 +38,7 @@
                                             <tr>
                                                 <td class="fw-bold">{{ $c1->name }}</td>
                                                 <td>
-                                                    <input type="number" step="0.1" min="0.1" max="9" name="comparison[{{ $c1->id }}][{{ $c2->id }}]" class="form-control form-control-sm d-inline-block w-50 text-center" value="1" required>
+                                                    <input type="number" step="any" min="0.1" max="9" name="comparison[{{ $c1->id }}][{{ $c2->id }}]" class="form-control form-control-sm d-inline-block w-50 text-center" value="1" required>
                                                 </td>
                                                 <td class="fw-bold">{{ $c2->name }}</td>
                                             </tr>
@@ -77,7 +77,7 @@
                                         <td class="fw-bold">{{ $alt->name }}</td>
                                         @foreach($criteria as $crit)
                                             <td>
-                                                <input type="number" step="0.01" name="score[{{ $alt->id }}][{{ $crit->id }}]" class="form-control form-control-sm text-center" value="0" required>
+                                                <input type="number" step="any" name="score[{{ $alt->id }}][{{ $crit->id }}]" class="form-control form-control-sm text-center" value="0" required>
                                             </td>
                                         @endforeach
                                     </tr>
