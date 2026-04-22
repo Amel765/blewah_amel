@@ -41,8 +41,14 @@
                                         <div class="d-flex justify-content-end gap-1">
                                             <a href="{{ route('admin.submissions.show', $submission->id) }}" class="btn btn-sm btn-light">Detail</a>
                                             @if($submission->status == 'pending')
+                                                <form action="{{ route('admin.submissions.auto_process', $submission->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Lakukan proses otomatis 1-klik?')">
+                                                        <i class="ti ti-sparkles"></i> Proses Otomatis
+                                                    </button>
+                                                </form>
                                                 <a href="{{ route('admin.submissions.input_result', $submission->id) }}" class="btn btn-sm btn-primary">
-                                                    <i class="ti ti-edit"></i> Input Hasil
+                                                    <i class="ti ti-edit"></i> Input Manual
                                                 </a>
                                             @endif
                                             <form action="{{ route('admin.submissions.destroy', $submission->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus perhitungan ini? Semua data terkait (kriteria, alternatif, nilai) akan ikut terhapus.')">

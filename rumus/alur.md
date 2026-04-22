@@ -46,8 +46,9 @@
 | AHP | Bobot kriteria (weight) |
 | COCOSO | Ranking alternatif (Qi) |
 
-Sekarang kamu bisa langsung coba di aplikasi:
+
 1. `/criteria` → tambah kriteria
 2. `/alternative` → tambah varietas
 3. `/ahp` → input perbandingan, hitung bobot
 4. `/cocoso` → input nilai varietas, hitung ranking
+5. 

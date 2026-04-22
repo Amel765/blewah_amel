@@ -64,6 +64,7 @@ Route::middleware(['auth', 'role:admin'])->name('admin.')->group(function () {
         Route::get('/{id}', [AdminSubmissionController::class, 'show'])->name('show');
         Route::get('/{id}/input-result', [AdminSubmissionController::class, 'inputResult'])->name('input_result');
         Route::post('/{id}/store-result', [AdminSubmissionController::class, 'storeResult'])->name('store_result');
+        Route::post('/{id}/auto-process', [AdminSubmissionController::class, 'autoProcess'])->name('auto_process');
         Route::delete('/{id}', [AdminSubmissionController::class, 'destroy'])->name('destroy');
     });
 });
