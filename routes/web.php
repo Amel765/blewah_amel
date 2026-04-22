@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\COCOSOController;
 use App\Http\Controllers\CriteriaController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserSubmissionController;
 
 Route::get('/', function () {
@@ -85,5 +86,8 @@ Route::middleware(['auth', 'role:user'])->prefix('user')->name('user.')->group(f
 
     Route::get('/submission/{id}', [UserSubmissionController::class, 'show'])->name('submission.show');
     Route::delete('/submission/{id}', [UserSubmissionController::class, 'destroy'])->name('submission.destroy');
+
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 
 });

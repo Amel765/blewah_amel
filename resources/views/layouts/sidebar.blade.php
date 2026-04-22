@@ -74,18 +74,24 @@
             <span class="hide-menu">Hasil Ranking</span>
           </a>
         </li>
-        @else
-        <li class="nav-small-cap">
-          <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
-          <span class="hide-menu">MENU USER</span>
-        </li>
-        <li class="sidebar-item">
-          <a class="sidebar-link {{ Request::is('user/submission*') ? 'active' : '' }}" href="{{ route('user.dashboard') }}" aria-expanded="false">
-            <span><i class="ti ti-file-description"></i></span>
-            <span class="hide-menu">Pengajuan Saya</span>
-          </a>
-        </li>
-        @endif
+         @else
+         <li class="nav-small-cap">
+           <i class="ti ti-dots nav-small-cap-icon fs-4"></i>
+           <span class="hide-menu">MENU USER</span>
+         </li>
+         <li class="sidebar-item">
+           <a class="sidebar-link {{ Request::is('user/submission*') ? 'active' : '' }}" href="{{ route('user.dashboard') }}" aria-expanded="false">
+             <span><i class="ti ti-file-description"></i></span>
+             <span class="hide-menu">Pengajuan Saya</span>
+           </a>
+         </li>
+         <li class="sidebar-item">
+           <a class="sidebar-link {{ Request::is('user/profile*') ? 'active' : '' }}" href="{{ route('user.profile.edit') }}" aria-expanded="false">
+             <span><i class="ti ti-user"></i></span>
+             <span class="hide-menu">Edit Profil</span>
+           </a>
+         </li>
+         @endif
       </ul>
     </nav>
   </div>
