@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Alternative;
 use App\Models\Criteria;
 use App\Models\Score;
+use App\Models\SubmissionScore;
 
 class COCOSOService
 {
@@ -25,37 +26,34 @@ class COCOSOService
         } else {
             $decisionMatrix = $this->getDecisionMatrix($criteria, $alternatives);
         }
-        
+
         $normalizedMatrix = $this->normalizeMatrix($decisionMatrix, $criteria);
 
-        // Si (Weighted Sum) and Pi (Weighted Product)
+        // Si (Weighted Sum) and Pi (Weighted Product Sum)
         $si = [];
         $pi = [];
 
         foreach ($alternatives as $i => $alt) {
             $siSum = 0;
-            $piSum = 1; // Start with 1 for multiplication
+            $piSum = 0; // Sum of (r_ij ^ w_j)
 
             foreach ($criteria as $j => $crit) {
                 $val = $normalizedMatrix[$i][$j];
 
-                // Get weight by criteria_id - weights format: [criteria_id => ['weight'=>x, 'type'=>y]]
+                // Get weight
                 $weight = 0;
                 if (isset($weights[$crit->id]) && isset($weights[$crit->id]['weight'])) {
                     $weight = (float) $weights[$crit->id]['weight'];
                 } elseif (is_array($weights) && isset($weights[$j])) {
-                    // Fallback to indexed array
                     $weight = (float) ($weights[$j]['weight'] ?? $weights[$j] ?? 0);
                 }
 
-                // Si = Weighted Sum (Σ w_j * r_ij)
+                // Si = Σ (w_j * r_ij)
                 $siSum += $val * $weight;
 
-                // Pi = Weighted Product (∏ r_ij ^ w_j)
-                // Using multiplication, not power addition
-                if ($val > 0 && $weight > 0) {
-                    $piSum *= pow($val, $weight);
-                }
+                // Pi = Σ (r_ij ^ w_j)   — sum of powers, not product
+                // Use epsilon for zero to avoid pow(0, w)=0
+                $piSum += pow(($val == 0 ? 0 : $val), $weight);
             }
             $si[$i] = $siSum;
             $pi[$i] = $piSum;
@@ -66,28 +64,26 @@ class COCOSOService
         $minPi = min($pi);
         $maxPi = max($pi);
 
-        $totalSi = array_sum($si);
-        $totalPi = array_sum($pi);
-
         $results = [];
         foreach ($alternatives as $i => $alt) {
-            // k_a - Max strategy (sum of normalized scores)
-            // k_a = (Si - min(Si)) / (max(Si) - min(Si)) + (Pi - min(Pi)) / (max(Pi) - min(Pi))
-            $siNorm = ($maxSi != $minSi) ? ($si[$i] - $minSi) / ($maxSi - $minSi) : 1;
-            $piNorm = ($maxPi != $minPi) ? ($pi[$i] - $minPi) / ($maxPi - $minPi) : 1;
-            $ka = $siNorm + $piNorm;
+            // K_a: Min-Max normalized compromise
+            //$siNorm = ($maxSi != $minSi) ? ($si[$i] - $minSi) / ($maxSi - $minSi) : 1;
+            //$piNorm = ($maxPi != $minPi) ? ($pi[$i] - $minPi) / ($maxPi - $minPi) : 1;
+            $ka = ($si[$i] + $pi[$i]) / (array_sum($si) + array_sum($pi));
 
-            // k_b - Max relative advantage (compared to min)
-            $kb = ($minSi > 0) ? $si[$i] / $minSi : 0;
+            // K_b: Maximalist strategy (relative to minimum)
+            // Standard: S_i / min_S ; Extended variant: also add P_i / min_P
+            //$kb = ($minSi > 0 ? $si[$i] / $minSi : 0) + ($minPi > 0 ? $pi[$i] / $minPi : 0);
+            $kb = ($minSi + $minPi != 0) ? ($si[$i] + $pi[$i]) / ($minSi + $minPi) : 0;
+            // K_c: Balance strategy (lambda-weighted)
+            $lambda = 0.5;
+            $kc_num = $lambda * $si[$i] + (1 - $lambda) * $pi[$i];
+            $kc_den = $lambda * $maxSi + (1 - $lambda) * $maxPi;
+            $kc = ($kc_den != 0) ? $kc_num / $kc_den : 0;
 
-            // k_c - Average relative advantage (sum of ratios)
-            $siRatio = ($totalSi > 0) ? $si[$i] / $totalSi : 0;
-            $piRatio = ($totalPi > 0) ? $pi[$i] / $totalPi : 0;
-            $kc = $siRatio + $piRatio;
-
-            // Qi - Combined compromise score (COCOSO standard formula)
-            // Qi = (k_a * k_b * k_c)^(1/3) + (k_a + k_b + k_c) / 3
-            $qi = pow($ka * $kb * $kc, 1 / 3) + ($ka + $kb + $kc) / 3;
+            // Qi = (K_a * K_b * K_c)^(1/3) + (K_a + K_b + K_c) / 3
+            $product = $ka * $kb * $kc;
+            $qi = pow($product, 1 / 3) + ($ka + $kb + $kc) / 3;
 
             $results[] = [
                 'alternative' => $alt,
@@ -100,7 +96,6 @@ class COCOSOService
             ];
         }
 
-        // Sort by Qi descending
         usort($results, fn ($a, $b) => $b['qi'] <=> $a['qi']);
 
         return $results;
@@ -111,7 +106,7 @@ class COCOSOService
         $matrix = [];
         foreach ($alternatives as $i => $alt) {
             foreach ($criteria as $j => $crit) {
-                $score = \App\Models\SubmissionScore::where('submission_id', $submissionId)
+                $score = SubmissionScore::where('submission_id', $submissionId)
                     ->where('alternative_id', $alt->id)
                     ->where('criteria_id', $crit->id)
                     ->first();
@@ -143,8 +138,8 @@ class COCOSOService
         $colMax = [];
         $colMin = [];
 
-        $m = count($matrix); // alternatives
-        $n = count($criteria); // criteria
+        $m = count($matrix);
+        $n = count($criteria);
 
         for ($j = 0; $j < $n; $j++) {
             $col = array_column($matrix, $j);
@@ -160,13 +155,10 @@ class COCOSOService
                 $diff = $max - $min;
 
                 if ($diff == 0) {
-                    // All values are the same - use 1 as neutral value
                     $normalized[$i][$j] = 1;
                 } elseif ($criteria[$j]->type === 'benefit') {
-                    // Higher is better: (x - min) / (max - min)
                     $normalized[$i][$j] = ($val - $min) / $diff;
                 } else {
-                    // Lower is better: (max - x) / (max - min)
                     $normalized[$i][$j] = ($max - $val) / $diff;
                 }
             }

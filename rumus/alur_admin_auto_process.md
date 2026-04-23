@@ -62,17 +62,20 @@
 │  └────────────────────────────┬────────────────────────┴──┐       │
 │                               ▼                             │       │
 │  ┌─────────────────────────────────────────────────────┐    │       │
-│  │  Step 4: CoCoSo Calculation (COCOSOService)        │    │       │
-│  │  ┌─────────────────────────────────────────────┐    │    │       │
-│  │  │ Input: weights + submission scores         │    │    │       │
-│  │  │                                               │    │    │       │
-│  │  │ Process:                                     │    │    │       │
-│  │  │ 1. Normalize scores (0-100 → utility)      │    │    │       │
-│  │  │ 2. Calculate Si = Σ (normalized × weight)  │    │    │       │
-│  │  │ 3. Calculate Pi = Π (normalized^weight)    │    │    │       │
-│  │  │ 4. Compute Ka, Kb, Kc                       │    │    │       │
-│  │  │ 5. Qi = (Ka + Kb + Kc) / 3                 │    │    │       │
-│  │  └─────────────────────────────────────────────┘    │    │       │
+  │  │  Step 4: CoCoSo Calculation (COCOSOService)        │    │       │
+  │  │  ┌─────────────────────────────────────────────┐    │    │       │
+  │  │  │ Input: weights + submission scores         │    │    │       │
+  │  │  │                                               │    │    │       │
+  │  │  │ Process:                                     │    │    │       │
+  │  │  │ 1. Normalize scores (min-max to [0,1])     │    │    │       │
+  │  │  │ 2. Calculate Si = Σ (w_j × r_ij)            │    │    │       │
+  │  │  │ 3. Calculate Pi = Σ (r_ij ^ w_j)            │    │    │       │
+  │  │  │ 4. Compute Ka, Kb, Kc                       │    │    │       │
+  │  │  │    Ka = (Si-min)/(max-min) + (Pi-min)/(max-min) │ │       │
+  │  │  │    Kb = Si/min_S + Pi/min_P                 │    │    │       │
+  │  │  │    Kc = (λ·Si + (1-λ)·Pi) / (λ·max_S+(1-λ)·max_P) ││       │
+  │  │  │ 5. Qi = (Ka·Kb·Kc)^(1/3) + (Ka+Kb+Kc)/3   │    │    │       │
+  │  │  └─────────────────────────────────────────────┘    │    │       │
 │  │                                                     │    │       │
 │  │  Output: ranking[] array with:                     │    │       │
 │  │  - name (alternative name)                         │    │       │
@@ -180,17 +183,29 @@ if (!isset($ahpResults['cr']) || $ahpResults['cr'] >= 0.1) {
 - `$submissionId` to fetch `submission_scores`.
 
 **Process:**
-1. **Normalize scores** (Benefit: `x / max(x)`, Cost: `min(x) / x`).
+
+1. **Normalize scores** using min-max scaling:
+   - Benefit: `r = (x - min) / (max - min)`
+   - Cost: `r = (max - x) / (max - min)`
+   - Result: `r ∈ [0, 1]` for all alternatives.
+
 2. **Calculate for each alternative i:**
-   - **S_i (Weighted Sum):** `Σ (normalized_score_ij × weight_j)`
-   - **P_i (Weighted Product):** `Π (normalized_score_ij ^ weight_j)` — computed in log space: `exp(Σ weight_j × ln(normalized_score_ij))`
+   - **S_i (Weighted Sum):** `S_i = Σ_j (w_j × r_ij)`
+   - **P_i (Weighted Product Sum):** `P_i = Σ_j (r_ij ^ w_j)`
+     - Note: This is a **sum of powered values**, not a product. Using sum avoids underflow and matches the CoCoSo variant implemented.
+
 3. **Compute three compromise scores:**
-   - `K_a = (S_i - min_S) / (max_S - min_S) + (P_i - min_P) / (max_P - min_P)`
-   - `K_b = S_i / min_S`  (relative to best S)
-   - `K_c = (S_i / ΣS) + (P_i / ΣP)`
+   - **K_a = (S_i - min_S)/(max_S - min_S) + (P_i - min_P)/(max_P - min_P)**
+     - Min-max normalized S and P, then summed.
+   - **K_b = S_i / min_S + P_i / min_P**
+     - Relative advantage compared to the worst (sum of ratios).
+   - **K_c = (λ·S_i + (1-λ)·P_i) / (λ·max_S + (1-λ)·max_P)**, λ = 0.5
+     - Weighted average normalized by maxima.
+
 4. **Aggregate final score:**
-   - `Q_i = (K_a × K_b × K_c)^(1/3) + (K_a + K_b + K_c) / 3`
-5. **Rank** alternatives by `Q_i` descending.
+   - **Q_i = (K_a × K_b × K_c)^(1/3) + (K_a + K_b + K_c) / 3**
+
+5. **Ranking:** Sort by `Q_i` descending.
 
 **Returned:** Array of suggestions with alternative model and all intermediate scores.
 
@@ -282,22 +297,23 @@ $submission->update([
 ### CoCoSo
 
 1. **Normalized Performance:**  
-   Benefit: `r_ij = x_ij / max(x_j)`  
-   Cost: `r_ij = min(x_j) / x_ij`
+   Benefit: `r_ij = (x_ij - min_j) / (max_j - min_j)`  
+   Cost: `r_ij = (max_j - x_ij) / (max_j - min_j)`  
+   (Min-max scaling to [0, 1])
 
 2. **Weighted Sum:**  
-   `S_i = Σ_j (r_ij × w_j)`
+   `S_i = Σ_j (w_j × r_ij)`
 
-3. **Weighted Product:**  
-   `P_i = Π_j (r_ij ^ w_j)`  
-   (Use logs: `ln(P_i) = Σ_j w_j × ln(r_ij)`)
+3. **Weighted Product Sum:**  
+   `P_i = Σ_j (r_ij ^ w_j)`  
+   (Sum of each normalized value raised to its weight power)
 
 4. **Compromise Scores:**
-   - `K_a = (S_i - min_S) / (max_S - min_S) + (P_i - min_P) / (max_P - min_P)`
-   - `K_b = S_i / min_S`
-   - `K_c = (S_i / ΣS) + (P_i / ΣP)`
+   - `K_a = (S_i - min_S)/(max_S - min_S) + (P_i - min_P)/(max_P - min_P)`
+   - `K_b = S_i / min_S + P_i / min_P`
+   - `K_c = (λ·S_i + (1-λ)·P_i) / (λ·max_S + (1-λ)·max_P)`  with λ = 0.5
 
-5. **Final Score:**  
+5. **Final Aggregated Score:**  
    `Q_i = (K_a × K_b × K_c)^(1/3) + (K_a + K_b + K_c) / 3`
 
 6. **Ranking:** Sort by `Q_i` descending.
