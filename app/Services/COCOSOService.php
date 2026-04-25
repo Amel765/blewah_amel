@@ -29,13 +29,13 @@ class COCOSOService
 
         $normalizedMatrix = $this->normalizeMatrix($decisionMatrix, $criteria);
 
-        // Si (Weighted Sum) and Pi (Weighted Product Sum)
+        // Si (Weighted Sum) and Pi (Weighted Product)
         $si = [];
         $pi = [];
 
         foreach ($alternatives as $i => $alt) {
             $siSum = 0;
-            $piSum = 0; // Sum of (r_ij ^ w_j)
+            $piProduct = 1.0;
 
             foreach ($criteria as $j => $crit) {
                 $val = $normalizedMatrix[$i][$j];
@@ -51,38 +51,37 @@ class COCOSOService
                 // Si = Σ (w_j * r_ij)
                 $siSum += $val * $weight;
 
-                // Pi = Σ (r_ij ^ w_j)   — sum of powers, not product
-                // Use epsilon for zero to avoid pow(0, w)=0
-                $piSum += pow(($val == 0 ? 0 : $val), $weight);
+                // Pi = Π (r_ij ^ w_j)
+                $piProduct *= pow(($val == 0 ? 0.0001 : $val), $weight);
             }
             $si[$i] = $siSum;
-            $pi[$i] = $piSum;
+            $pi[$i] = $piProduct;
         }
 
         $minSi = min($si);
         $maxSi = max($si);
         $minPi = min($pi);
         $maxPi = max($pi);
+        $sumSi = array_sum($si);
+        $sumPi = array_sum($pi);
 
         $results = [];
         foreach ($alternatives as $i => $alt) {
-            // K_a: Min-Max normalized compromise
-            //$siNorm = ($maxSi != $minSi) ? ($si[$i] - $minSi) / ($maxSi - $minSi) : 1;
-            //$piNorm = ($maxPi != $minPi) ? ($pi[$i] - $minPi) / ($maxPi - $minPi) : 1;
-            $ka = ($si[$i] + $pi[$i]) / (array_sum($si) + array_sum($pi));
+            // K_a: (Si-minSi)/(maxSi-minSi) + (Pi-minPi)/(maxPi-minPi)
+            $siNorm = ($maxSi != $minSi) ? ($si[$i] - $minSi) / ($maxSi - $minSi) : 1;
+            $piNorm = ($maxPi != $minPi) ? ($pi[$i] - $minPi) / ($maxPi - $minPi) : 1;
+            $ka = $siNorm + $piNorm;
 
-            // K_b: Maximalist strategy (relative to minimum)
-            // Standard: S_i / min_S ; Extended variant: also add P_i / min_P
+            // K_b: (Si/minSi) + (Pi/minPi)
             //$kb = ($minSi > 0 ? $si[$i] / $minSi : 0) + ($minPi > 0 ? $pi[$i] / $minPi : 0);
-            $kb = ($minSi + $minPi != 0) ? ($si[$i] + $pi[$i]) / ($minSi + $minPi) : 0;
-            // K_c: Balance strategy (lambda-weighted)
-            $lambda = 0.5;
-            $kc_num = $lambda * $si[$i] + (1 - $lambda) * $pi[$i];
-            $kc_den = $lambda * $maxSi + (1 - $lambda) * $maxPi;
-            $kc = ($kc_den != 0) ? $kc_num / $kc_den : 0;
+            // K_b: Relatif terhadap nilai minimum gabungan (Rumus Standar CoCoSo)
+$kb = ($minSi + $minPi != 0) ? ($si[$i] + $pi[$i]) / ($minSi + $minPi) : 0;
 
-            // Qi = (K_a * K_b * K_c)^(1/3) + (K_a + K_b + K_c) / 3
-            $product = $ka * $kb * $kc;
+            // K_c: Si/ΣSi + Pi/ΣPi
+            $kc = ($sumSi > 0 ? $si[$i] / $sumSi : 0) + ($sumPi > 0 ? $pi[$i] / $sumPi : 0);
+
+            // Qi = (ka * kb * kc)^(1/3) + (ka + kb + kc) / 3
+            $product = max($ka * $kb * $kc, 0.0001);
             $qi = pow($product, 1 / 3) + ($ka + $kb + $kc) / 3;
 
             $results[] = [

@@ -25,7 +25,11 @@ class AHPService
         $normalizedMatrix = $this->normalizeMatrix($matrix, $n);
         $weights = $this->calculateEigenvector($matrix, $n);
 
-        $cr = $this->calculateConsistencyRatio($matrix, $weights, $n);
+        $consistencyResult = $this->calculateConsistencyRatio($matrix, $weights, $n);
+        $cr = $consistencyResult['cr'];
+        $riValue = $consistencyResult['ri'];
+        $ciValue = $consistencyResult['ci'];
+        $lambdaMaxValue = $consistencyResult['lambdaMax'];
 
         // Define weightedCriteria but DON'T update table if it's a submission
         $weightedCriteria = [];
@@ -50,6 +54,9 @@ class AHPService
             'weightsIndexed' => $weights,
             'weights' => $weightedCriteria,
             'cr' => $cr,
+            'ri' => $riValue,
+            'ci' => $ciValue,
+            'lambdaMax' => $lambdaMaxValue,
             'matrix' => $matrix,
             'normalizedMatrix' => $normalizedMatrix,
             'criteria' => $criteriaArray,
@@ -182,7 +189,7 @@ class AHPService
     private function calculateConsistencyRatio($matrix, $weights, $n)
     {
         if ($n <= 2) {
-            return 0;
+            return ['cr' => 0, 'ri' => 0];
         }
 
         // Calculate Ax
@@ -207,26 +214,27 @@ class AHPService
         $ci = ($lambdaMax - $n) / ($n - 1);
 
         // RI (Random Index) values - Saaty standard for n ≥ 3
-            $ri = [
-        1 => 0.00,
-        2 => 0.00,
-        3 => 0.58,
-        4 => 0.90,
-        5 => 1.12,
-        6 => 1.24,
-        7 => 1.32,
-        8 => 1.41,
-        9 => 1.45,
-        10 => 1.49
-    ];
+        $ri = [
+            1 => 0.00,
+            2 => 0.00,
+            3 => 0.58,
+            4 => 0.90,
+            5 => 1.12,
+            6 => 1.24,
+            7 => 1.32,
+            8 => 1.41,
+            9 => 1.45,
+            10 => 1.49,
+        ];
 
-    // Ambil nilai RI langsung menggunakan $n sebagai key
+        // Ambil nilai RI langsung menggunakan $n sebagai key
         // Jika $n tidak ada di daftar (misal > 10), default ke 1.49
         $riValue = isset($ri[$n]) ? $ri[$n] : 1.49;
 
         // Hitung CR (Consistency Ratio)
         // Pastikan tidak ada pembagian dengan nol jika kriteria < 3
-        return ($riValue > 0) ? round($ci / $riValue, 4) : 0;
+        $cr = ($riValue > 0) ? round($ci / $riValue, 4) : 0;
 
+        return ['cr' => $cr, 'ri' => $riValue, 'ci' => round($ci, 4), 'lambdaMax' => round($lambdaMax, 4)];
     }
 }

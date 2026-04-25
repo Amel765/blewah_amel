@@ -134,6 +134,12 @@
         <div class="row mt-4">
           <div class="col-md-6">
             <div class="alert {{ $results['cr'] < 0.1 ? 'alert-success' : 'alert-danger' }} border-0 shadow-none">
+              <strong>Lambda Max (λ max):</strong> {{ rtrim(rtrim(number_format($results['lambdaMax'], 10), '0'), '.') }}
+              <br>
+              <strong>Consistency Index (CI):</strong> {{ rtrim(rtrim(number_format($results['ci'], 10), '0'), '.') }}
+              <br>
+              <strong>Random Index (RI):</strong> {{ rtrim(rtrim(number_format($results['ri'], 10), '0'), '.') }}
+              <br>
               <strong>Consistency Ratio (CR):</strong> {{ rtrim(rtrim(number_format($results['cr'], 10), '0'), '.') }}
               <br>
               <small>{{ $results['cr'] < 0.1 ? '✓ CR < 0.1 - Matriks Konsisten (Dapat Digunakan)' : '✗ CR >= 0.1 - Matriks Tidak Konsisten (Harus Diperbaiki)' }}</small>
