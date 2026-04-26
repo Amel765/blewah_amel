@@ -62,7 +62,8 @@
                                     @foreach($submission->comparisons as $comp)
                                         <tr>
                                             <td>{{ $comp->criteria1->name }} <span class="text-muted small">({{ ucfirst($comp->criteria1->type) }})</span></td>
-                                            <td class="text-center fw-bold">{{ $comp->value }}</td>
+                                            <td class="text-center fw-bold">{{ number_format($comp->value, 3) }}</td>
+
                                             <td>{{ $comp->criteria2->name }} <span class="text-muted small">({{ ucfirst($comp->criteria2->type) }})</span></td>
                                         </tr>
                                     @endforeach
@@ -92,7 +93,8 @@
                                         <tr>
                                             <td>{{ $score->alternative->name }}</td>
                                             <td>{{ $score->criteria->name }} <span class="text-muted small">({{ ucfirst($score->criteria->type) }})</span></td>
-                                            <td class="text-center fw-bold">{{ $score->value }}</td>
+                                            <td class="text-center fw-bold">{{ number_format($score->value, 2) }}</td>
+
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -133,7 +135,7 @@
                                     <tr>
                                         <td>#{{ $index + 1 }}</td>
                                         <td class="text-start fw-bold">{{ $res['name'] }}</td>
-                                        <td class="fw-bold text-success">{{ number_format($res['qi'], 4) }}</td>
+                                        <td class="fw-bold text-success">{{ number_format($res['qi'], 2) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
