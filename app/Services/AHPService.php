@@ -8,72 +8,70 @@ use App\Models\SubmissionComparison;
 
 class AHPService
 {
-    /**
-     * Fungsi custom untuk pembulatan seragam menjadi 2 desimal.
-     */
-    private function round_custom($num, $digits = 2)
+    // Tetap gunakan 10 digit untuk akurasi perhitungan internal
+    private function round_custom($num, $digits = 10)
     {
         return round($num, $digits);
     }
 
     public function calculateWeights($submissionId = null)
-    {
-        $criteria = Criteria::where('submission_id', $submissionId)->orderBy('id')->get();
-        $n = $criteria->count();
-        if ($n === 0) {
-            return [];
+{
+    $criteria = Criteria::where('submission_id', $submissionId)->orderBy('id')->get();
+    $n = $criteria->count();
+    if ($n === 0) { return []; }
+
+    // 1. Hitung dengan angka teliti (jangan dibulatkan dulu agar CI tidak negatif)
+    if ($submissionId) {
+        $matrix = $this->getPairwiseMatrixFromSubmission($submissionId, $criteria);
+    } else {
+        $matrix = $this->getPairwiseMatrix($criteria);
+    }
+
+    $normalizedMatrix = $this->normalizeMatrix($matrix, $n);
+    $weights = $this->calculateEigenvector($matrix, $n);
+    $consistencyResult = $this->calculateConsistencyRatio($matrix, $weights, $n);
+
+    // 2. Kumpulkan bobot kriteria (bulatkan ke 2 desimal di sini)
+    $weightedCriteria = [];
+    foreach ($criteria as $index => $crit) {
+        $weight = $weights[$index] ?? 0;
+        $weightRounded2 = round($weight, 2);
+        if (! $submissionId) {
+            $crit->update(['weight' => $weightRounded2]);
         }
-
-        if ($submissionId) {
-            $matrix = $this->getPairwiseMatrixFromSubmission($submissionId, $criteria);
-        } else {
-            $matrix = $this->getPairwiseMatrix($criteria);
-        }
-
-        $normalizedMatrix = $this->normalizeMatrix($matrix, $n);
-        $weights = $this->calculateEigenvector($matrix, $n);
-
-        $consistencyResult = $this->calculateConsistencyRatio($matrix, $weights, $n);
-        
-        // Memastikan hasil konsistensi juga dibulatkan 2 desimal
-        $cr = $this->round_custom($consistencyResult['cr']);
-        $riValue = $consistencyResult['ri'];
-        $ciValue = $this->round_custom($consistencyResult['ci']);
-        $lambdaMaxValue = $this->round_custom($consistencyResult['lambdaMax']);
-
-        $weightedCriteria = [];
-        foreach ($criteria as $index => $crit) {
-            $weight = $weights[$index] ?? 0;
-            $weightRounded2 = $this->round_custom($weight);
-            
-            if (! $submissionId) {
-                $crit->update(['weight' => $weightRounded2]);
-            }
-            
-            $weightedCriteria[$crit->id] = [
-                'criteria_id' => $crit->id,
-                'name' => $crit->name,
-                'weight' => $weightRounded2,
-            ];
-        }
-
-        $criteriaArray = [];
-        foreach ($criteria as $index => $crit) {
-            $criteriaArray[$index] = $crit;
-        }
-
-        return [
-            'weightsIndexed' => array_map(fn($w) => $this->round_custom($w), $weights),
-            'weights' => $weightedCriteria,
-            'cr' => $cr,
-            'ri' => $riValue,
-            'ci' => $ciValue,
-            'lambdaMax' => $lambdaMaxValue,
-            'matrix' => $matrix,
-            'normalizedMatrix' => $normalizedMatrix,
-            'criteria' => $criteriaArray,
+        $weightedCriteria[$crit->id] = [
+            'criteria_id' => $crit->id,
+            'name' => $crit->name,
+            'weight' => $weightRounded2,
         ];
     }
+
+    // 3. Bulatkan Matriks HANYA untuk tampilan tabel hijau
+    $displayMatrix = [];
+    foreach ($matrix as $i => $row) {
+        foreach ($row as $j => $val) {
+            $displayMatrix[$i][$j] = round($val, 2);
+        }
+    }
+
+    // 4. Return hasil: Hitungan asli tetap akurat, tapi yang dikirim ke View sudah bulat
+    return [
+        'weightsIndexed' => array_map(fn($w) => round($w, 2), $weights),
+        'weights' => $weightedCriteria,
+        'cr' => round($consistencyResult['cr'], 2),
+        'ri' => $consistencyResult['ri'],
+        'ci' => round($consistencyResult['ci'], 2),
+        'lambdaMax' => round($consistencyResult['lambdaMax'], 2),
+        'matrix' => $displayMatrix, // Matriks ini yang akan tampil di tabel hijau (Sudah 2 digit!)
+        'normalizedMatrix' => $normalizedMatrix,
+        'criteria' => $criteria->values()->all(),
+    ];
+}
+
+    
+    // ... (Gunakan fungsi getPairwiseMatrix, normalizeMatrix, calculateEigenvector, calculateConsistencyRatio yang asli/awal tadi)
+
+
 
     private function getPairwiseMatrixFromSubmission($submissionId, $criteria)
     {
